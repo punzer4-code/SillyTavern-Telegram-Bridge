@@ -5,14 +5,10 @@ import sqlite3
 from pathlib import Path
 
 import pytest
+from source_test_support import top_level_functions
 
 ROOT = Path(__file__).parents[1]
 BRIDGE = ROOT / "bridge"
-
-
-def top_level_functions(filename: str) -> set[str]:
-    tree = ast.parse((BRIDGE / filename).read_text(encoding="utf-8"))
-    return {node.name for node in tree.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
 
 
 def function_source(filename: str, function_name: str) -> str:

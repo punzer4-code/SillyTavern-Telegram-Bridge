@@ -232,6 +232,44 @@ class DurableWorkerGuardTests(SettingsTestCase):
         self.assertEqual(self.sleeps, [0.25, 1.0])
         self.assertEqual(attempts, ["closed", "closed", "closed"])
 
+    def test_requeue_recovers_when_a_later_retry_succeeds(self):
+        """The loop-back retry path must not depend on real SQLite lock timing."""
+        attempts = []
+
+        class FlakyConnection:
+            def __init__(self, fail: bool) -> None:
+                self._fail = fail
+
+            def execute(self, *_args, **_kwargs):
+                if self._fail:
+                    raise sqlite3.OperationalError("database is locked")
+                return None
+
+            def commit(self):
+                attempts.append("committed")
+
+            def close(self):
+                attempts.append("closed")
+
+        opens = iter([FlakyConnection(fail=True), FlakyConnection(fail=False)])
+        guard = DurableWorkerGuard(
+            lambda _path, timeout=10.0: next(opens),
+            sleep=self.sleeps.append,
+        )
+        wrapped = guard.prepare(
+            self.db,
+            6,
+            lambda: self._raise(sqlite3.OperationalError("database is locked")),
+        )
+
+        # A successful requeue is terminal: the guard re-raises the original
+        # worker failure without retrying the remaining delays.
+        with self.assertRaises(sqlite3.OperationalError):
+            wrapped()
+
+        self.assertEqual(attempts, ["closed", "committed", "closed"])
+        self.assertEqual(self.sleeps, [0.25])
+
 
 class CanonicalDatabaseConnectionTests(SettingsTestCase):
     def setUp(self):

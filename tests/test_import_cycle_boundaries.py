@@ -1,27 +1,12 @@
 from __future__ import annotations
 
-import ast
 import importlib
 from pathlib import Path
 
+from source_test_support import imported_modules, top_level_functions
+
 ROOT = Path(__file__).parents[1]
 BRIDGE = ROOT / "bridge"
-
-
-def imported_modules(filename: str) -> set[str]:
-    tree = ast.parse((BRIDGE / filename).read_text(encoding="utf-8"))
-    result: set[str] = set()
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            result.update(alias.name for alias in node.names)
-        elif isinstance(node, ast.ImportFrom) and node.module:
-            result.add(node.module)
-    return result
-
-
-def top_level_functions(filename: str) -> set[str]:
-    tree = ast.parse((BRIDGE / filename).read_text(encoding="utf-8"))
-    return {node.name for node in tree.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
 
 
 def test_persona_sync_is_canonical_identity_owner(monkeypatch, *, app_settings_builder):

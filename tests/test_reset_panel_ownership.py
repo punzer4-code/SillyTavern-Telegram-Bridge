@@ -13,6 +13,7 @@ BRIDGE = ROOT / "bridge"
 
 
 def test_reset_panel_module_is_pure_and_builds_exact_send_payload():
+    """Verify the independent reset panel builds the expected confirmation request."""
     path = BRIDGE / "reset_panel.py"
     assert path.is_file()
     module = importlib.import_module("bridge.reset_panel")

@@ -12,6 +12,7 @@ BRIDGE = ROOT / "bridge"
 
 
 def function_source(filename: str, function_name: str) -> str:
+    """Return source lines for a named top-level function, raising StopIteration if absent."""
     source = (BRIDGE / filename).read_text(encoding="utf-8")
     tree = ast.parse(source)
     node = next(

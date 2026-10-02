@@ -17,6 +17,7 @@ BRIDGE = ROOT / "bridge"
 
 
 def test_delivery_port_is_pure_and_declares_required_callables():
+    """Verify the delivery port exposes the required fields and only imports contracts."""
     path = BRIDGE / "delivery_port.py"
     assert path.is_file(), "DeliveryPort module is missing"
     module = importlib.import_module("bridge.delivery_port")

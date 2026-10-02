@@ -20,6 +20,7 @@ BRIDGE = ROOT / "bridge"
 
 
 def group_service_module():
+    """Import the group service after asserting that its source module exists."""
     path = BRIDGE / "group_service.py"
     assert path.is_file(), "GroupService module is missing"
     return importlib.import_module("bridge.group_service")

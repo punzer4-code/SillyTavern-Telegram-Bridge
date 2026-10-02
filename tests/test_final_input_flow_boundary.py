@@ -20,6 +20,7 @@ from bridge.session_service import SessionService
 
 
 def test_input_flow_service_requires_final_backends_and_injects_handler():
+    """Verify required input backends receive the injected handler and call arguments."""
     from bridge.input_flow_service import InputFlowService
 
     for name in (

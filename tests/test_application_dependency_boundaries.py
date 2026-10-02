@@ -22,6 +22,7 @@ BRIDGE = ROOT / "bridge"
 
 
 def test_persona_sync_does_not_import_input_flows():
+    """Keep persona synchronization independent of input-flow orchestration."""
     assert "bridge.input_flows" not in imported_modules("persona_sync.py")
 
 

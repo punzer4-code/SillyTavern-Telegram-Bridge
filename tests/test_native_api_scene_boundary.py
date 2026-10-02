@@ -14,6 +14,7 @@ BRIDGE = ROOT / "bridge"
 
 
 def top_level_classes(filename: str) -> set[str]:
+    """Return class names defined directly in the named bridge source file."""
     tree = ast.parse((BRIDGE / filename).read_text(encoding="utf-8"))
     return {node.name for node in tree.body if isinstance(node, ast.ClassDef)}
 

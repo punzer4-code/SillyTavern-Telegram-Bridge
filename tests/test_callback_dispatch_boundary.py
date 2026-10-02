@@ -18,6 +18,7 @@ BRIDGE_DIR = Path(__file__).parents[1] / "bridge"
 
 class CallbackDispatchBoundaryTests(SettingsTestCase):
     def test_callbacks_does_not_import_panel_callback_routes(self):
+        """Keep callback helpers independent of panel-route dispatch."""
         self.assertNotIn(
             "bridge.panel_callback_routes",
             imported_modules(BRIDGE_DIR / "callbacks.py"),

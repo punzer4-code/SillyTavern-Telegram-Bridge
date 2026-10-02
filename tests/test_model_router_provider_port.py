@@ -14,6 +14,7 @@ BRIDGE = ROOT / "bridge"
 
 
 def test_model_router_is_pure_and_routes_qualified_and_unique_exact_models():
+    """Verify independent model routing accepts exact matches and rejects unknown names."""
     path = BRIDGE / "model_router.py"
     assert path.is_file(), "ModelRouter module is missing"
     module = importlib.import_module("bridge.model_router")

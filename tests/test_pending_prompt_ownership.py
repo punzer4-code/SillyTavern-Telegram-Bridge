@@ -22,6 +22,7 @@ BRIDGE_DIR = Path(__file__).parents[1] / "bridge"
 
 
 def imported_names(path: Path, module: str) -> set[str]:
+    """Return original names imported from the specified module anywhere in a source file."""
     tree = ast.parse(path.read_text(encoding="utf-8"))
     return {
         alias.name

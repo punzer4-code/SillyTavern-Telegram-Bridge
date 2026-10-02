@@ -13,6 +13,7 @@ BRIDGE = ROOT / "bridge"
 
 
 def test_director_goal_panel_is_pure_and_exact():
+    """Verify the goal panel has no bridge dependencies and renders both goal states."""
     path = BRIDGE / "director_goal_panel.py"
     assert path.is_file()
     module = importlib.import_module("bridge.director_goal_panel")

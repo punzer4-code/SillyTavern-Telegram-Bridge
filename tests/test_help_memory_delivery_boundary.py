@@ -23,6 +23,7 @@ BRIDGE = ROOT / "bridge"
 
 
 def top_level_names(filename: str) -> set[str]:
+    """Return top-level function names and simple assignment targets in a bridge file."""
     tree = ast.parse((BRIDGE / filename).read_text(encoding="utf-8"))
     names: set[str] = set()
     for node in tree.body:

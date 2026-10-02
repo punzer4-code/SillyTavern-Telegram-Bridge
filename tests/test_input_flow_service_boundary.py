@@ -15,6 +15,7 @@ BRIDGE = ROOT / "bridge"
 
 
 def test_input_flow_service_is_pure_and_delegates():
+    """Verify the independent input service forwards arguments, its handler, and results."""
     path = BRIDGE / "input_flow_service.py"
     assert path.is_file(), "InputFlowService module is missing"
     module = importlib.import_module("bridge.input_flow_service")

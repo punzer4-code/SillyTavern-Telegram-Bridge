@@ -10,6 +10,7 @@ BRIDGE = ROOT / "bridge"
 
 
 def test_persona_sync_is_canonical_identity_owner(monkeypatch, *, app_settings_builder):
+    """Verify persona_sync owns identity helpers and resolves names and the default persona."""
     import bridge.persona_sync as persona_sync
 
     for name in ("get_persona", "default_persona_id", "persona_name"):

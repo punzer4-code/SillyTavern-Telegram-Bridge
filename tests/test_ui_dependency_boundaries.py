@@ -13,6 +13,7 @@ import bridge.settings_callbacks as _owner_settings_callbacks
 
 
 def test_expressions_no_longer_imports_telegram():
+    """Keep expression handling independent of Telegram transport."""
     assert "bridge.telegram" not in imported_modules("expressions.py")
 
 

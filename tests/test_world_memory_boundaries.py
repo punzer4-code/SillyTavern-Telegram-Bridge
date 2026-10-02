@@ -15,6 +15,7 @@ BRIDGE = ROOT / "bridge"
 
 
 def test_world_storage_is_canonical_owner_and_low_level():
+    """Verify world installation has one owner without UI or transport dependencies."""
     path = BRIDGE / "world_storage.py"
     assert path.is_file()
     imports = imported_modules("world_storage.py")

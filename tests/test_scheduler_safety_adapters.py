@@ -207,6 +207,7 @@ class DurableWorkerGuardTests(SettingsTestCase):
         self.assertEqual(opens, [])
 
     def test_requeue_retries_are_bounded(self):
+        """Verify persistent locks exhaust two retry delays and close all three connections."""
         attempts = []
 
         class FailingConnection:
@@ -238,17 +239,21 @@ class DurableWorkerGuardTests(SettingsTestCase):
 
         class FlakyConnection:
             def __init__(self, fail: bool) -> None:
+                """Configure whether this connection simulates a locked database."""
                 self._fail = fail
 
             def execute(self, *_args, **_kwargs):
+                """Raise a lock error for a failing connection; otherwise accept the statement."""
                 if self._fail:
                     raise sqlite3.OperationalError("database is locked")
                 return None
 
             def commit(self):
+                """Record that the successful requeue transaction was committed."""
                 attempts.append("committed")
 
             def close(self):
+                """Record connection cleanup after each requeue attempt."""
                 attempts.append("closed")
 
         opens = iter([FlakyConnection(fail=True), FlakyConnection(fail=False)])
@@ -273,6 +278,7 @@ class DurableWorkerGuardTests(SettingsTestCase):
 
 class CanonicalDatabaseConnectionTests(SettingsTestCase):
     def setUp(self):
+        """Create an isolated temporary database path for canonical connection tests."""
         self.tmp = tempfile.TemporaryDirectory()
         self.path = Path(self.tmp.name) / "canonical.sqlite3"
 

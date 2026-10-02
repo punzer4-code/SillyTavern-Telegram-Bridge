@@ -7,6 +7,7 @@ import bridge.command_panels as _command_panels
 
 
 def test_language_module_does_not_import_telegram():
+    """Keep language handling independent of Telegram transport."""
     assert "bridge.telegram" not in imported_modules("language.py")
 
 

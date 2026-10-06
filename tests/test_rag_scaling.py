@@ -1,22 +1,24 @@
-from application_test_setup import ensure_application_extensions, make_native_test_embedding_port
-from settings_test_support import SettingsTestCase
-
-import bridge.embedding_transport as _owner_embedding_transport
-import bridge.embedding_values as _owner_embedding_values
-import bridge.rag_indexing as _owner_rag_indexing
-import bridge.rag_query as _owner_rag_query
-import bridge.rag_retrieval as _owner_rag_retrieval
-
-ensure_application_extensions()
-
 import json
 import sqlite3
+import subprocess
+import sys
 import tempfile
 import time
 import unittest
 from pathlib import Path
 
+import pytest
+from application_test_setup import ensure_application_extensions, make_native_test_embedding_port
+from settings_test_support import SettingsTestCase
+
+import bridge.embedding_transport as _owner_embedding_transport
+import bridge.embedding_values as _owner_embedding_values
 import bridge.memory_curator as _m_memory_curator
+import bridge.rag_indexing as _owner_rag_indexing
+import bridge.rag_query as _owner_rag_query
+import bridge.rag_retrieval as _owner_rag_retrieval
+
+ensure_application_extensions()
 
 
 class RagScalingTests(SettingsTestCase):
@@ -295,3 +297,24 @@ class RagScalingTests(SettingsTestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# (merged from test_optional_numeric_acceleration.py) An optional vector accelerator must not prevent the bridge from
+#    starting.
+@pytest.mark.parametrize("error", ["ImportError", "RuntimeError"])
+def test_vector_math_remains_available_when_numpy_cannot_initialize(error):
+    source = f"""
+import builtins
+original_import = builtins.__import__
+def import_without_numpy(name, *args, **kwargs):
+    if name == "numpy":
+        raise {error}("NumPy baseline CPU optimizations are unavailable")
+    return original_import(name, *args, **kwargs)
+builtins.__import__ = import_without_numpy
+from bridge.rag_retrieval import cosine_similarity
+assert abs(cosine_similarity([1.0, 2.0], [1.0, 2.0]) - 1.0) < 1e-12
+assert cosine_similarity([1.0, 0.0], [0.0, 1.0]) == 0.0
+assert cosine_similarity([0.0], [0.0]) == 0.0
+"""
+    result = subprocess.run([sys.executable, "-c", source], capture_output=True, text=True, check=False)
+    assert result.returncode == 0, result.stderr

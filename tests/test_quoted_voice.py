@@ -1,19 +1,20 @@
-from application_test_setup import ensure_application_extensions
-from settings_test_support import SettingsTestCase
-
-import bridge.response_delivery as _owner_response_delivery
-
-ensure_application_extensions()
-
 import sqlite3
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
+
+from application_test_setup import ensure_application_extensions, make_test_session_service
+from settings_test_support import SettingsTestCase, make_test_settings
 
 import bridge.help_details as _m_help_details
 import bridge.message_commands as _m_message_commands
+import bridge.response_delivery as _owner_response_delivery
+import bridge.voice_jobs as _owner_voice_jobs
 from bridge.delivery_repository import clear_progress
 from bridge.schema import initialize_database_schema
 from bridge.sqlite_store import write_transaction
+
+ensure_application_extensions()
 
 
 class QuotedVoiceTests(SettingsTestCase):
@@ -130,3 +131,46 @@ class QuotedVoiceTests(SettingsTestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# (merged from test_voice_conversation_boundary.py) Transcribed voice enters the explicitly injected conversation owner.
+def test_transcript_uses_injected_service_and_preserves_request_identity(monkeypatch):
+    delivered = []
+
+    class ConversationRecorder:
+        def process_message(self, *args, **kwargs):
+            delivered.append((args, kwargs))
+
+    services = SimpleNamespace(
+        config=make_test_settings(),
+        group=SimpleNamespace(user_turn_allowed=lambda *a: True),
+        conversation=ConversationRecorder(),
+        session=make_test_session_service(app_settings=make_test_settings()),
+    )
+    db = object()
+    fields = {"name": "character"}
+    monkeypatch.setattr(_owner_voice_jobs, "story_mutation_message", lambda *a: None)
+    monkeypatch.setattr(_owner_voice_jobs, "require_started", lambda *a: True)
+    monkeypatch.setattr(_owner_voice_jobs, "get_meta", lambda _db, _key, default: default)
+    monkeypatch.setattr(_owner_voice_jobs, "download_telegram_file", lambda *_args: b"audio")
+    monkeypatch.setattr(_owner_voice_jobs, "transcribe_audio_bytes", lambda *_args, app_settings=None: "spoken message")
+    _owner_voice_jobs.process_voice_message(
+        db,
+        "token",
+        "key",
+        "model",
+        fields,
+        "chat",
+        {"file_id": "voice-file", "file_size": 5, "file_name": "voice.ogg"},
+        42,
+        queued_session_id="queued-session",
+        actor_id="actor",
+        operation_id=99,
+        services=services,
+    )
+    assert delivered == [
+        (
+            (db, "token", "key", "model", fields, "chat", "spoken message", 42),
+            {"queued_session_id": "queued-session", "actor_id": "actor", "operation_id": 99},
+        )
+    ]

@@ -1,6 +1,7 @@
 """Exercise recoverable workers with real synthetic databases; fake external I/O only."""
 
 import json
+import time
 from types import SimpleNamespace
 
 import pytest
@@ -8,9 +9,10 @@ from application_test_setup import make_test_provider_port
 from memory_runtime_test_support import isolated_memory_runtime as isolated_memory_runtime
 from test_memory_completion_safety import session_db as session_db
 
-from bridge import memory_backend
+from bridge import memory_backend, memory_workers
 from bridge.memory_store import claim_jobs
 from bridge.metadata import set_meta
+from bridge.model_router import ModelRoutingError
 
 
 def add(db, text="A durable event"):
@@ -548,3 +550,28 @@ def test_durable_worker_module_fails_before_real_client_construction(session_db)
     settings, _, _ = session_db
     with pytest.raises(pytest.fail.Exception, match=r"^Memory runtime test reached unconfigured native/external I/O$"):
         memory_backend.hindsight_client(app_settings=settings)
+
+
+# (merged from test_memory_failure_backoff.py) Durable-memory failure classes that need non-default retry policy.
+def test_model_configuration_failure_uses_long_backoff(session_db, monkeypatch):
+    settings, db, session = session_db
+    db.execute("INSERT INTO messages(chat_id,session_id,role,content,created_at) VALUES('chat','s1','user','event',1)")
+    db.commit()
+    claim = claim_jobs(db, layers=("summary",))[0]
+
+    def fail_route(*_args, **_kwargs):
+        raise ModelRoutingError("retired provider")
+
+    monkeypatch.setattr(memory_workers, "_run_derived_layer", fail_route)
+    started = time.time()
+    assert (
+        memory_workers.run_memory_claim(
+            db, claim, session, {"name": "Alice"}, provider_port=None, app_settings=settings
+        )
+        == "configuration"
+    )
+    error, next_attempt = db.execute(
+        "SELECT last_error,next_attempt_at FROM memory_jobs WHERE layer='summary'"
+    ).fetchone()
+    assert error == "configuration"
+    assert next_attempt >= started + 3599

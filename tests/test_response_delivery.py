@@ -1,11 +1,12 @@
 import json
 import sqlite3
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from settings_test_support import SettingsTestCase
 
 import bridge.response_delivery as response_delivery
+import bridge.swipe_panels as swipe_panels
 import bridge.telegram as telegram
 from bridge.schema import initialize_database_schema
 
@@ -573,6 +574,74 @@ class ResponseDeliveryTests(SettingsTestCase):
             json.loads(self.db.execute("SELECT telegram_message_ids FROM messages WHERE rowid=42").fetchone()[0]),
             [71, 72],
         )
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+
+class SwipePanelOutputTests(SettingsTestCase):
+    def test_swipe_panels_sanitize_stored_html_variants(self):
+        delivery = Mock()
+        delivery.send_panel_request.return_value = {"message_id": 91}
+        variants = [(1, "<div>Recovered<br>variant</div>", 1)]
+
+        with (
+            patch.object(swipe_panels, "last_user_variants", return_value=((1, "prompt"), variants)),
+            patch.object(swipe_panels, "set_meta"),
+        ):
+            swipe_panels.send_swipe_menu(
+                "token",
+                Mock(),
+                "chat",
+                "session",
+                delivery_port=delivery,
+                request_context=object(),
+            )
+            swipe_panels.edit_swipe_menu(
+                "token",
+                Mock(),
+                {"message": {"chat": {"id": "chat"}, "message_id": 91}},
+                "session",
+                1,
+                variants,
+                delivery_port=delivery,
+                request_context=object(),
+            )
+
+        payloads = [call.args[2] for call in delivery.send_panel_request.call_args_list]
+        self.assertEqual(len(payloads), 2)
+        for payload in payloads:
+            self.assertNotIn("<div", payload["text"])
+            self.assertNotIn("<br>", payload["text"])
+            self.assertIn("Recovered\nvariant", payload["text"])
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+
+class TelegramPreviewTests(SettingsTestCase):
+    def test_send_text_disables_link_previews(self):
+        calls = []
+        original_request = telegram.telegram_request
+        telegram.telegram_request = lambda _token, method, payload: calls.append((method, payload)) or {"message_id": 1}
+        try:
+            self.assertEqual(
+                telegram.send_text(
+                    "token",
+                    "chat",
+                    "https://example.com/image.jpg",
+                ),
+                [1],
+            )
+        finally:
+            telegram.telegram_request = original_request
+
+        self.assertEqual(len(calls), 1)
+        method, payload = calls[0]
+        self.assertEqual(method, "sendMessage")
+        self.assertTrue(payload["disable_web_page_preview"])
 
 
 if __name__ == "__main__":

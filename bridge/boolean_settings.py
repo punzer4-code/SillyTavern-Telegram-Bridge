@@ -4,6 +4,12 @@ from __future__ import annotations
 
 
 def normalize_on_off(value: str | None) -> str:
+    """Return canonical ``on`` or ``off``, ignoring case and surrounding whitespace.
+
+    Accept ``true``, ``yes``, ``enabled``, and ``1`` as ``on``; accept
+    ``false``, ``no``, ``disabled``, and ``0`` as ``off``. Raise ValueError
+    (``use on or off``) for None, empty strings, or unrecognized values.
+    """
     normalized = str(value or "").strip().casefold()
     normalized = {
         "true": "on",

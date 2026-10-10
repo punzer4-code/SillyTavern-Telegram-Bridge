@@ -21,6 +21,11 @@ GROUNDED_USER_POLICY = (
 
 
 def normalize_grounded_user(value: str | None) -> str:
+    """Return the Grounded User preference as ``on`` or ``off``.
+
+    Accept the aliases, case, and whitespace supported by ``normalize_on_off``.
+    Propagate ValueError for None, empty strings, or unrecognized values.
+    """
     return normalize_on_off(value)
 
 

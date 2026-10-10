@@ -9,6 +9,11 @@ from bridge.metadata import get_meta
 
 
 def normalize_humanizer(value: str | None) -> str:
+    """Return the Humanizer preference as ``on`` or ``off``.
+
+    Accept the aliases, case, and whitespace supported by ``normalize_on_off``.
+    Propagate ValueError for None, empty strings, or unrecognized values.
+    """
     return normalize_on_off(value)
 
 
